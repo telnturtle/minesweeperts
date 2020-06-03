@@ -22,15 +22,30 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": "react-app",
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "ecmaVersion": 2020,
+      "sourceType": "module",
+      "ecmaFeatures": {
+        "jsx": true
+      }
+    },
+    "env": {
+      "browser": true
+    },
+    "extends": ["react-app"],
     "rules": {
-      "additional-rule": "warn"
+      "no-undef":"off"
     },
     "overrides": [
       {
-        "files": ["**/*.ts?(x)"],
+        "files": ["**/*.(ts|tsx)"],
+        "plugins": ["@typescript-eslint"],
+        "extends": ["react-app", "plugin:typescript-eslint/recommended"],
         "rules": {
-          "additional-typescript-only-rule": "warn"
+          "@typescript-eslint/no-explicit-any": "warn",
+          "@typescript-eslint/no-unused-vars": "warn",
+          "@typescript-eslint/no-unused-expressions": "warn"
         }
       }
     ]

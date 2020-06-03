@@ -1,188 +1,178 @@
-import React, { Component } from 'react';
+import React, { useState, useCallback } from 'react';
 
 // cores
-import { generate, RATES, around8Coords, around4Coords } from '../core/mine';
+import { generateField, RATES } from '../core/mine';
 
 // types
-import { FieldCell, Coord, Field, MapCell, Map } from 'core/types';
+import { Cell, Coord, Field } from 'core/types';
 
 // auxs
-import { isCoordEqual, isArrIncludesCoord } from '../core/auxs';
+import { isCoordEqual, isArrayIncludesCoord, getCellFromField, around8Coords, around4Coords } from '../core/auxs';
 
-interface State {
-  string: string;
-  opened: Coord[];
-  field: Field;
-}
+const getRenderingByMinesAdjecent = (coord: Coord, field: Field): string => {
+  const n = getMinesAdjacentToCoord(coord, field);
+  return 9 > n ? String(n) : '*';
+};
+
+const getMinesAdjacentToCoord = (coord: Coord, field: Field): number => {
+  if (hasCellMine(coord, field)) return 9;
+
+  let acc = 0;
+  const { xSize, ySize } = getXYSize(field);
+  around8Coords(coord, xSize, ySize).forEach((coord) => {
+    acc += hasCellMine(coord, field) ? 1 : 0;
+  });
+  return acc;
+};
+
+const getXYSize = (twoDimensionalArray: any[][]): { xSize: number; ySize: number } => ({
+  xSize: twoDimensionalArray[0].length,
+  ySize: twoDimensionalArray.length,
+});
+
+const isUncovered = isArrayIncludesCoord;
+
+const hasCellMine = ({ x, y }: Coord, field: Field) => field[y][x].hasMine;
+
+const auxNarrowlyUncoverCells = (param: AuxOpenCellParam): AuxOpenCellParam => {
+  const { coord: target, acc, antiAcc, field } = param;
+  const nextParam: AuxOpenCellParam = { ...param };
+  if (isArrayIncludesCoord(antiAcc, target) || isArrayIncludesCoord(acc, target)) {
+    return nextParam;
+  }
+
+  if (hasCellMine(target, field) || getMinesAdjacentToCoord(target, field) > 0) {
+    nextParam.antiAcc.push(target);
+    return nextParam;
+  }
+
+  nextParam.acc.push(target);
+  const nextCoords = around4Coords(param.coord, param.xSize, param.ySize);
+  return nextCoords.reduce((acc, nextCoord) => auxNarrowlyUncoverCells({ ...acc, coord: nextCoord }), nextParam);
+};
+
+const auxWidelyUncoverCells = (param: AuxOpenCellParam): AuxOpenCellParam => {
+  if (isArrayIncludesCoord(param.antiAcc, param.coord) || isArrayIncludesCoord(param.acc, param.coord)) {
+    return param;
+  }
+
+  const nextParam = auxNarrowlyUncoverCells(param);
+
+  const { xSize, ySize } = nextParam;
+  const wideToOpen = nextParam.acc
+    .map((coord: Coord) => around8Coords(coord, xSize, ySize))
+    .flat()
+    .reduce((acc: Coord[], c: Coord) => (!isArrayIncludesCoord(acc, c) ? acc.concat(c) : acc), [])
+    .filter((c: Coord) => !isArrayIncludesCoord(param.acc, c));
+
+  return auxWidelyUncoverCells(
+    wideToOpen.reduce((acc, nextCoord) => auxNarrowlyUncoverCells({ ...acc, coord: nextCoord }), nextParam),
+  );
+};
 
 interface AuxOpenCellParam {
-  target: Coord;
+  coord: Coord;
   acc: Coord[];
   antiAcc: Coord[];
   field: Field;
-  xLength: number;
-  yLength: number;
+  xSize: number;
+  ySize: number;
 }
 
-// constructor에서 this.state: State = {}를 사용하려면 선언을 다음과 같은 형식으로 해 줘야 함:
-// Component<any, State>
-export default class Test extends Component<any> {
-  state: State = { string: 'hello', opened: [], field: [] };
-
-  isCellMine = ({ x, y }: Coord, field: Field) => field[y - 1][x - 1].mine;
-
-  getMineCountByCoord = (coord: Coord, field: Field): number => {
-    if (this.isCellMine(coord, field)) return 9;
-
-    let acc = 0;
-    const { xLength, yLength } = this.getXYLength(field);
-    around8Coords(coord, xLength, yLength).forEach((coord) => {
-      acc += this.isCellMine(coord, field) ? 1 : 0;
-    });
-    return acc;
-  };
-
-  auxOpenCellNarrow = (param: AuxOpenCellParam): AuxOpenCellParam => {
-    const { target, acc, antiAcc, field } = param;
-    const nextParam: AuxOpenCellParam = { ...param };
-    if (isArrIncludesCoord(antiAcc, target) || isArrIncludesCoord(acc, target)) {
-      return nextParam;
-    }
-
-    if (this.isCellMine(target, field) || this.getMineCountByCoord(target, field) > 0) {
-      nextParam.antiAcc.push(target);
-      return nextParam;
-    }
-
-    nextParam.acc.push(target);
-    const nextCoords = around4Coords(param.target, param.xLength, param.yLength);
-    return nextCoords.reduce((acc, nextCoord) => this.auxOpenCellNarrow({ ...acc, target: nextCoord }), nextParam);
-  };
-
-  auxOpenCellWide = (param: AuxOpenCellParam): AuxOpenCellParam => {
-    if (isArrIncludesCoord(param.antiAcc, param.target) || isArrIncludesCoord(param.acc, param.target)) {
-      return param;
-    }
-
-    const nextParam = this.auxOpenCellNarrow(param);
-
-    const { xLength, yLength } = nextParam;
-    const wideToOpen = nextParam.acc
-      .map((coord) => around8Coords(coord, xLength, yLength))
-      .flat()
-      .reduce((acc: Coord[], c) => (!isArrIncludesCoord(acc, c) ? acc.concat(c) : acc), [])
-      .filter((c) => !isArrIncludesCoord(param.acc, c));
-
-    return this.auxOpenCellWide(
-      wideToOpen.reduce((acc, nextCoord) => this.auxOpenCellNarrow({ ...acc, target: nextCoord }), nextParam),
-    );
-  };
+/** @todo type */
+export default function Test() {
+  /** @todo type */
+  const [uncoveredCoords, setUncoveredCoords] = useState<Coord[]>([]);
+  const [field, setField] = useState<Field>([]);
+  const [isGameStarted, setBeGameStarted] = useState<boolean>(false);
 
   /**if getMineCountByCoord === 0 then open wide else only open clicked cell */
-  openCell = (coord: Coord): void => {
-    // if the cell's around mine count equals 0
-    if (this.getMineCountByCoord(coord, this.state.field) !== 0) {
-      this.concatToOpened(coord);
-    }
-    // else
-    else {
-      const { xLength, yLength } = this.getXYLength(this.state.field);
-      const nextParam = this.auxOpenCellWide({
-        target: coord,
-        acc: [],
-        antiAcc: this.state.opened,
-        field: this.state.field,
-        xLength,
-        yLength,
-      });
+  const uncoverCell = useCallback(
+    (coord: Coord, initialField?: Field): void => {
+      const theField: Field = initialField || field;
+      if (getMinesAdjacentToCoord(coord, theField) !== 0) {
+        // There are no landmines adjacents the house.
+        setUncoveredCoords((prev) => [...prev, coord]);
+      } else {
+        // else
+        const { xSize, ySize } = getXYSize(theField);
+        const nextParam = auxWidelyUncoverCells({
+          coord,
+          acc: [],
+          antiAcc: uncoveredCoords,
+          field: theField,
+          xSize,
+          ySize,
+        });
 
-      this.concatToOpened(nextParam.acc);
-    }
-  };
+        setUncoveredCoords((prev) => [...prev, ...nextParam.acc]);
+      }
+    },
+    [getMinesAdjacentToCoord, auxWidelyUncoverCells, uncoveredCoords, field],
+  );
 
-  getXYLength = (arr: any[][]): { xLength: number; yLength: number } => ({
-    xLength: arr[0].length,
-    yLength: arr.length,
-  });
+  const handleClick = useCallback(
+    (coord: Coord): void => {
+      if (hasCellMine(coord, field)) {
+        alert('Bang!');
+        return;
+      }
 
-  onClick = (coord: Coord): void => {
-    // init
-    if (this.state.field.length === 0) {
-      const field = generate(10, 18, RATES.normal, coord);
-      this.setState({ field }, () => {
-        this.openCell(coord);
-      });
-    }
-    // not init
-    else {
-      if (this.isCellMine(coord, this.state.field)) window.alert('Bang!');
-      else this.openCell(coord);
-    }
-  };
+      uncoverCell(coord);
+    },
+    [field, hasCellMine, uncoverCell],
+  );
 
-  isOpened = (c: Coord): boolean => isArrIncludesCoord(this.state.opened, c);
+  /** Initialise the game */
+  const handleInitialClick = useCallback((coord: Coord) => {
+    const field = generateField(10, 18, RATES.normal, coord);
+    setField(() => field);
+    uncoverCell(coord, field);
+    setBeGameStarted(true);
+  }, []);
 
-  concatToOpened = (toConcat: Coord | Coord[], callback = () => {}) => {
-    this.setState({ opened: this.state.opened.concat(toConcat) }, callback);
-  };
-
-  setOpened = (opened: Coord[], callback = () => {}) => {
-    this.setState({ opened }, callback);
-  };
-
-  mineCountByCoord2DisplayString = (coord: Coord, field: Field): string => {
-    const n = this.getMineCountByCoord(coord, field);
-    return 9 > n ? String(n) : '*';
-  };
-
-  render() {
-    return (
+  return (
+    <div>
       <div>
         <div>
-          <div>
-            {this.state.field.length === 0
-              ? Array(18)
-                  .fill(null)
-                  .map((n, y) => (
-                    <div key={`temp-${y}`} style={{ display: 'flex' }}>
-                      {Array(10)
-                        .fill(null)
-                        .map((n, x) => (
-                          <div
-                            onClick={() => this.onClick({ x: x + 1, y: y + 1 })}
-                            style={{ width: '40px', height: '40px', backgroundColor: 'gray' }}
-                            key={`${x}-${y}`}
-                          >
-                            N
-                          </div>
-                        ))}
+          {!isGameStarted
+            ? Array.from(Array(18)).map((n, y) => (
+                <div key={`temp-${y}`} style={{ display: 'flex' }}>
+                  {Array.from(Array(10)).map((n, x) => (
+                    <div
+                      onClick={() => handleInitialClick({ x, y })}
+                      style={{ width: '40px', height: '40px', backgroundColor: 'gray' }}
+                      key={`${x}-${y}`}
+                    >
+                      N
                     </div>
-                  ))
-              : this.state.field.map((row, i) => (
-                  <div key={`test-${i}`} style={{ display: 'flex' }}>
-                    {row.map(({ x, y, mine }) => (
-                      <div
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: 'gray',
-                        }}
-                        key={`${x}-${y}`}
-                        onClick={() => this.onClick({ x, y })}
-                      >
-                        {this.isOpened({ x, y })
-                          ? mine
-                            ? 'M'
-                            : this.mineCountByCoord2DisplayString({ x, y }, this.state.field)
-                          : '?'}
-                        {/* `(${this.mineCountByCoord2DisplayString({ x, y }, this.state.field)})`} */}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-          </div>
+                  ))}
+                </div>
+              ))
+            : field.map((row, i) => (
+                <div key={`test-${i}`} style={{ display: 'flex' }}>
+                  {row.map(({ x, y, hasMine }) => (
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        backgroundColor: 'gray',
+                      }}
+                      key={`${x}-${y}`}
+                      onClick={() => handleClick({ x, y })}
+                    >
+                      {isUncovered(uncoveredCoords, { x, y })
+                        ? hasMine
+                          ? 'M'
+                          : getRenderingByMinesAdjecent({ x, y }, field)
+                        : '?'}
+                      {/* `(${this.mineCountByCoord2DisplayString({ x, y }, this.state.field)})`} */}
+                    </div>
+                  ))}
+                </div>
+              ))}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }

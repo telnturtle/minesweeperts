@@ -1,15 +1,15 @@
-import { Coord, FieldCell, Field } from 'core/types';
-import { isCoordEqual, isArrIncludesCoord } from './auxs';
+import { Coord, Cell, Field, CellState } from 'core/types';
+import { isCoordEqual, isArrayIncludesCoord, around8Coords } from './auxs';
 
 export const RATES = { normal: 0.12, hard: 0.18, expert: 0.24 };
 
-const generateMines = (x: number, y: number, rate: number, cleanCell: Coord): Coord[] => {
+const generateMineCoords = (x: number, y: number, rate: number, cleanCell: Coord): Coord[] => {
   const noMineCoords = [cleanCell, ...around8Coords(cleanCell, x, y)];
   let mineCount = Math.floor(x * y * rate);
   let mines: Coord[] = [];
   while (mineCount > 0) {
     const maybeMine = { x: Math.floor(Math.random() * x), y: Math.floor(Math.random() * y) };
-    if (!isArrIncludesCoord(noMineCoords, maybeMine) && !isArrIncludesCoord(mines, maybeMine)) {
+    if (!isArrayIncludesCoord(noMineCoords, maybeMine) && !isArrayIncludesCoord(mines, maybeMine)) {
       mines.push(maybeMine);
       mineCount -= 1;
     }
@@ -17,47 +17,38 @@ const generateMines = (x: number, y: number, rate: number, cleanCell: Coord): Co
   return mines;
 };
 
-const generateField = (x: number, y: number, mines: Coord[]): Field => {
-  let acc: Field = [];
-  for (let i = 1; i <= y; i += 1) {
-    let _acc_: FieldCell[] = [];
-    for (let j = 1; j <= x; j += 1) {
-      const _coord_ = { x: j, y: i };
-      if (mines.some((v) => isCoordEqual(_coord_, v))) {
-        _acc_.push({ ..._coord_, mine: true });
-      } else {
-        _acc_.push({ ..._coord_, mine: false });
-      }
+const generateCleanField = (xSize: number, ySize: number): Field => {
+  const acc: Field = [];
+  for (let i = 0; i < ySize; i += 1) {
+    const accRow: Cell[] = [];
+    for (let j = 0; j < xSize; j += 1) {
+      const coord = { x: j, y: i };
+      accRow.push({ ...coord, hasMine: false, state: 'uncovered' });
     }
-    acc.push(_acc_);
+    acc.push(accRow);
   }
   return acc;
 };
 
-export const generate = (
-  x: number = 10,
-  y: number = 18,
+const putMinesUnderField = (coords: Coord[], field: Field): Field => {
+  const acc = [...field];
+  acc.forEach((cellRow, i) =>
+    cellRow.forEach((cell, j) => {
+      acc[i][j] = isArrayIncludesCoord(coords, cell) ? { ...cell, hasMine: true } : cell;
+    }),
+  );
+  return acc;
+};
+
+export const generateField = (
+  xSize: number = 10,
+  ySize: number = 18,
   rate: number = RATES.normal,
   cleanCell: Coord = { x: 1, y: 1 },
 ): Field => {
-  const mines = generateMines(x, y, rate, cleanCell);
-  return generateField(x, y, mines);
-};
+  const mineCoords: Coord[] = generateMineCoords(xSize, ySize, rate, cleanCell);
 
-export const around8Coords = ({ x, y }: Coord, xLength: number, yLength: number): Coord[] => {
-  let acc: Coord[] = [];
-  [x - 1, x, x + 1].forEach((x) => {
-    [y - 1, y, y + 1].forEach((y) => {
-      acc.push({ x, y });
-    });
-  });
-  return acc.filter(({ x, y }) => x > 0 && xLength >= x && y > 0 && yLength >= y);
-};
+  const field = generateCleanField(xSize, ySize);
 
-export const around4Coords = ({ x, y }: Coord, xLength: number, yLength: number): Coord[] =>
-  [
-    { x: x - 1, y },
-    { x: x + 1, y },
-    { x, y: y - 1 },
-    { x, y: y + 1 },
-  ].filter(({ x, y }) => x > 0 && xLength >= x && y > 0 && yLength >= y);
+  return putMinesUnderField(mineCoords, field);
+};

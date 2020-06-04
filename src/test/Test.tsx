@@ -9,11 +9,13 @@ import { Cell, Coord, Field, GameState } from 'core/types';
 // auxs
 import { isArrayIncludesCoord, around8Coords, around4Coords, arrayIndexOfCoord } from '../core/auxs';
 
+/** Get rendering string the count of adjecent mines */
 const getRenderingByMinesAdjecent = (coord: Coord, field: Field): string => {
   const n = getMinesAdjacentToCoord(coord, field);
   return n === 0 ? '' : 9 > n ? String(n) : '*';
 };
 
+/** Get the count of adjecent mines */
 const getMinesAdjacentToCoord = (coord: Coord, field: Field): number => {
   if (hasCellMine(coord, field)) return 9;
 
@@ -25,15 +27,19 @@ const getMinesAdjacentToCoord = (coord: Coord, field: Field): number => {
   return acc;
 };
 
+/** Get size X and Y of the field (or any two dimentioanl array) */
 const getXYSize = (twoDimensionalArray: any[][]): { xSize: number; ySize: number } => ({
   xSize: twoDimensionalArray[0].length,
   ySize: twoDimensionalArray.length,
 });
 
+/** Get the cell of the coordinate is uncovered */
 const getCoordIsUncovered = isArrayIncludesCoord;
 
+/** Get the cell of the coordinate has a mine */
 const hasCellMine = ({ x, y }: Coord, field: Field) => field[y][x].hasMine;
 
+/** Search recursively to determine the area to uncover in the field (use 4 direction flood fill algorithm) */
 const auxNarrowlyUncoverCells = (param: AuxOpenCellParam): AuxOpenCellParam => {
   const { coord: target, acc, antiAcc, field } = param;
   const nextParam: AuxOpenCellParam = { ...param };
@@ -51,6 +57,7 @@ const auxNarrowlyUncoverCells = (param: AuxOpenCellParam): AuxOpenCellParam => {
   return nextCoords.reduce((acc, nextCoord) => auxNarrowlyUncoverCells({ ...acc, coord: nextCoord }), nextParam);
 };
 
+/** Search recursively to determine the area to uncover in the field (use 8 direction flood fill algorithm) */
 const auxWidelyUncoverCells = (param: AuxOpenCellParam): AuxOpenCellParam => {
   if (isArrayIncludesCoord(param.antiAcc, param.coord) || isArrayIncludesCoord(param.acc, param.coord)) {
     return param;
@@ -70,6 +77,7 @@ const auxWidelyUncoverCells = (param: AuxOpenCellParam): AuxOpenCellParam => {
   );
 };
 
+/** The parameter for auxiliary function that recursively searches */
 interface AuxOpenCellParam {
   coord: Coord;
   acc: Coord[];
@@ -79,9 +87,7 @@ interface AuxOpenCellParam {
   ySize: number;
 }
 
-/** @todo type */
-export default function Test() {
-  /** @todo type */
+export default function Test(): JSX.Element {
   const [uncoveredCoords, setUncoveredCoords] = useState<Coord[]>([]);
   const [field, setField] = useState<Field>([]);
   const [mineCoords, setMineCoords] = useState<Coord[]>([]);

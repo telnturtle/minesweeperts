@@ -1,8 +1,10 @@
 import { Coord, Cell, Field, GeneratedField } from 'core/types';
 import { isCoordEqual, isArrayIncludesCoord, around8Coords } from './auxs';
 
+/** Rates of mine */
 export const RATES = { normal: 0.12, hard: 0.18, expert: 0.24 };
 
+/** Generate mine coordinates without duplication */
 const generateMineCoords = (x: number, y: number, rate: number, cleanCell: Coord): Coord[] => {
   const noMineCoords = [cleanCell, ...around8Coords(cleanCell, x, y)];
   let mineCount = Math.floor(x * y * rate);
@@ -17,6 +19,7 @@ const generateMineCoords = (x: number, y: number, rate: number, cleanCell: Coord
   return mines;
 };
 
+/** Generate clean field of size X and Y */
 const generateCleanField = (xSize: number, ySize: number): Field => {
   const acc: Field = [];
   for (let i = 0; i < ySize; i += 1) {
@@ -30,6 +33,7 @@ const generateCleanField = (xSize: number, ySize: number): Field => {
   return acc;
 };
 
+/** Put mines in the field coordinates */
 const putMinesUnderField = (coords: Coord[], field: Field): Field => {
   const acc = [...field];
   acc.forEach((cellRow, i) =>
@@ -40,6 +44,7 @@ const putMinesUnderField = (coords: Coord[], field: Field): Field => {
   return acc;
 };
 
+/** Generate minesweeper game field */
 export const generateField = (
   xSize: number = 10,
   ySize: number = 18,

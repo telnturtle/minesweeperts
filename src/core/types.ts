@@ -20,3 +20,5 @@ export interface GeneratedField {
   ySize: number;
   mineCoords: Coord[];
 }
+
+export type GameState = 'ready' | 'sweeping' | 'exploded' | 'cleared';

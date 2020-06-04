@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { generateField, RATES } from '../core/mine';
 
 // types
-import { Cell, Coord, Field } from 'core/types';
+import { Cell, Coord, Field, GameState } from 'core/types';
 
 // auxs
 import { isArrayIncludesCoord, around8Coords, around4Coords, arrayIndexOfCoord } from '../core/auxs';
@@ -86,9 +86,7 @@ export default function Test() {
   const [field, setField] = useState<Field>([]);
   const [mineCoords, setMineCoords] = useState<Coord[]>([]);
   const [flaggedCoords, setFlaggedCoords] = useState<Coord[]>([]);
-  const [isGameStarted, setBeGameStarted] = useState<boolean>(false);
-  const [isMineExploded, setBeMineExploded] = useState<boolean>(false);
-  const [isFieldCleared, setBeFieldCleared] = useState<boolean>(false);
+  const [gameState, setGameState] = useState<GameState>('ready');
 
   /**if getMineCountByCoord === 0 then open wide else only open clicked cell */
   const uncoverCell = useCallback(
@@ -117,75 +115,71 @@ export default function Test() {
   );
 
   useEffect(() => {
-    if (10 * 18 - uncoveredCoords.length - mineCoords.length === 0) setBeFieldCleared(true);
+    if (10 * 18 - uncoveredCoords.length - mineCoords.length === 0) setGameState('cleared');
   }, [uncoveredCoords, mineCoords]);
 
-  const initGame = useCallback(() => {
+  const initializeGame = useCallback(() => {
     setUncoveredCoords([]);
     setField([]);
     setMineCoords([]);
     setFlaggedCoords([]);
-    setBeGameStarted(false);
-    setBeMineExploded(false);
-    setBeFieldCleared(false);
+    setGameState('ready');
   }, []);
 
   const handleClick = useCallback(
     (coord: Coord): void => {
-      if (isMineExploded) {
+      if (gameState === 'exploded') {
         if (!confirm('New game?')) return;
-        initGame();
+        initializeGame();
         return;
       }
 
       if (hasCellMine(coord, field)) {
-        setBeMineExploded(true);
+        setGameState('exploded');
         setUncoveredCoords((prev) => [...prev, coord]);
         return;
       }
 
       uncoverCell(coord);
     },
-    [field, hasCellMine, uncoverCell],
+    [field, hasCellMine, uncoverCell, gameState],
   );
 
   useEffect(() => {
-    if (isMineExploded) alert('Bang!');
-  }, [isMineExploded]);
+    if (gameState === 'exploded') alert('Bang!');
+  }, [gameState]);
 
-  /** Initialise the game */
+  /** Generate and start the game */
   const handleInitialClick = useCallback((coord: Coord): void => {
     const { field, mineCoords, xSize, ySize } = generateField(10, 18, RATES.normal, coord);
     setField(field);
     setMineCoords(mineCoords);
     uncoverCell(coord, field);
-    setBeGameStarted(true);
+    setGameState('sweeping');
   }, []);
 
   const handleRightClick = useCallback(
     (coord: Coord): void => {
-      if (isMineExploded) return;
+      if (gameState === 'exploded') return;
 
       setFlaggedCoords((prev: Coord[]): Coord[] => {
         const index: number | null = arrayIndexOfCoord(prev, coord);
         return index ? prev.filter((_, idx) => idx !== index) : [...prev, coord];
       });
     },
-    [field, setFlaggedCoords],
+    [field, gameState, setFlaggedCoords],
   );
 
   return (
     <div>
       <div>
         <p>
-          {isMineExploded && '💣💣'}
-          {isFieldCleared && '✨✨'}
+          {gameState === 'exploded' ? '💣💣' : gameState === 'cleared' ? '✨✨' : ''}
           <span className="red-indicator">{Math.max(mineCoords.length - flaggedCoords.length, 0)}</span>
-          {isMineExploded && '💣💣'}
-          {isFieldCleared && '✨✨'}
+          {gameState === 'exploded' ? '💣💣' : gameState === 'cleared' ? '✨✨' : ''}
         </p>
         <div>
-          {!isGameStarted
+          {gameState === 'ready'
             ? Array.from(Array(18)).map((n, y) => (
                 <div key={`temp-${y}`} className="field-row">
                   {Array.from(Array(10)).map((n, x) => (

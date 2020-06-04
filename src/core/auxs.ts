@@ -4,6 +4,14 @@ export const isCoordEqual = ({ x, y }: Coord, coord: Coord): boolean => x === co
 
 export const isArrayIncludesCoord = (arr: Coord[], coord: Coord) => arr.some((c) => isCoordEqual(c, coord));
 
+export const arrayIndexOfCoord = (arr: Coord[], coord: Coord): number | null => {
+  for (let index = 0; index < arr.length; index++) {
+    const element = arr[index];
+    if (isCoordEqual(element, coord)) return index;
+  }
+  return null;
+};
+
 export const getCellFromField = (c: Coord, f: Field): Cell => f[c.y][c.x];
 
 export const around8Coords = ({ x, y }: Coord, xSize: number, ySize: number): Coord[] => {

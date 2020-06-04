@@ -1,4 +1,4 @@
-import { Coord, Cell, Field, CellState } from 'core/types';
+import { Coord, Cell, Field, GeneratedField } from 'core/types';
 import { isCoordEqual, isArrayIncludesCoord, around8Coords } from './auxs';
 
 export const RATES = { normal: 0.12, hard: 0.18, expert: 0.24 };
@@ -45,10 +45,10 @@ export const generateField = (
   ySize: number = 18,
   rate: number = RATES.normal,
   cleanCell: Coord = { x: 1, y: 1 },
-): Field => {
+): GeneratedField => {
   const mineCoords: Coord[] = generateMineCoords(xSize, ySize, rate, cleanCell);
 
   const field = generateCleanField(xSize, ySize);
 
-  return putMinesUnderField(mineCoords, field);
+  return { field: putMinesUnderField(mineCoords, field), mineCoords, xSize, ySize };
 };

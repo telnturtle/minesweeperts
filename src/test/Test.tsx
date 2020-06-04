@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 // cores
 import { generateField, RATES } from '../core/mine';
@@ -7,11 +7,11 @@ import { generateField, RATES } from '../core/mine';
 import { Cell, Coord, Field } from 'core/types';
 
 // auxs
-import { isCoordEqual, isArrayIncludesCoord, getCellFromField, around8Coords, around4Coords } from '../core/auxs';
+import { isArrayIncludesCoord, around8Coords, around4Coords, arrayIndexOfCoord } from '../core/auxs';
 
 const getRenderingByMinesAdjecent = (coord: Coord, field: Field): string => {
   const n = getMinesAdjacentToCoord(coord, field);
-  return 9 > n ? String(n) : '*';
+  return n === 0 ? '' : 9 > n ? String(n) : '*';
 };
 
 const getMinesAdjacentToCoord = (coord: Coord, field: Field): number => {
@@ -30,7 +30,7 @@ const getXYSize = (twoDimensionalArray: any[][]): { xSize: number; ySize: number
   ySize: twoDimensionalArray.length,
 });
 
-const isUncovered = isArrayIncludesCoord;
+const getCoordIsUncovered = isArrayIncludesCoord;
 
 const hasCellMine = ({ x, y }: Coord, field: Field) => field[y][x].hasMine;
 
@@ -84,12 +84,17 @@ export default function Test() {
   /** @todo type */
   const [uncoveredCoords, setUncoveredCoords] = useState<Coord[]>([]);
   const [field, setField] = useState<Field>([]);
+  const [mineCoords, setMineCoords] = useState<Coord[]>([]);
+  const [flaggedCoords, setFlaggedCoords] = useState<Coord[]>([]);
   const [isGameStarted, setBeGameStarted] = useState<boolean>(false);
+  const [isMineExploded, setBeMineExploded] = useState<boolean>(false);
+  const [isFieldCleared, setBeFieldCleared] = useState<boolean>(false);
 
   /**if getMineCountByCoord === 0 then open wide else only open clicked cell */
   const uncoverCell = useCallback(
     (coord: Coord, initialField?: Field): void => {
       const theField: Field = initialField || field;
+      let nextUncoveredCoords: Coord[];
       if (getMinesAdjacentToCoord(coord, theField) !== 0) {
         // There are no landmines adjacents the house.
         setUncoveredCoords((prev) => [...prev, coord]);
@@ -111,10 +116,31 @@ export default function Test() {
     [getMinesAdjacentToCoord, auxWidelyUncoverCells, uncoveredCoords, field],
   );
 
+  useEffect(() => {
+    if (10 * 18 - uncoveredCoords.length - mineCoords.length === 0) setBeFieldCleared(true);
+  }, [uncoveredCoords, mineCoords]);
+
+  const initGame = useCallback(() => {
+    setUncoveredCoords([]);
+    setField([]);
+    setMineCoords([]);
+    setFlaggedCoords([]);
+    setBeGameStarted(false);
+    setBeMineExploded(false);
+    setBeFieldCleared(false);
+  }, []);
+
   const handleClick = useCallback(
     (coord: Coord): void => {
+      if (isMineExploded) {
+        if (!confirm('New game?')) return;
+        initGame();
+        return;
+      }
+
       if (hasCellMine(coord, field)) {
-        alert('Bang!');
+        setBeMineExploded(true);
+        setUncoveredCoords((prev) => [...prev, coord]);
         return;
       }
 
@@ -123,52 +149,69 @@ export default function Test() {
     [field, hasCellMine, uncoverCell],
   );
 
+  useEffect(() => {
+    if (isMineExploded) alert('Bang!');
+  }, [isMineExploded]);
+
   /** Initialise the game */
-  const handleInitialClick = useCallback((coord: Coord) => {
-    const field = generateField(10, 18, RATES.normal, coord);
-    setField(() => field);
+  const handleInitialClick = useCallback((coord: Coord): void => {
+    const { field, mineCoords, xSize, ySize } = generateField(10, 18, RATES.normal, coord);
+    setField(field);
+    setMineCoords(mineCoords);
     uncoverCell(coord, field);
     setBeGameStarted(true);
   }, []);
 
+  const handleRightClick = useCallback(
+    (coord: Coord): void => {
+      if (isMineExploded) return;
+
+      setFlaggedCoords((prev: Coord[]): Coord[] => {
+        const index: number | null = arrayIndexOfCoord(prev, coord);
+        return index ? prev.filter((_, idx) => idx !== index) : [...prev, coord];
+      });
+    },
+    [field, setFlaggedCoords],
+  );
+
   return (
     <div>
       <div>
+        <p>
+          {isMineExploded && '💣💣'}
+          {isFieldCleared && '✨✨'}
+          <span className="red-indicator">{Math.max(mineCoords.length - flaggedCoords.length, 0)}</span>
+          {isMineExploded && '💣💣'}
+          {isFieldCleared && '✨✨'}
+        </p>
         <div>
           {!isGameStarted
             ? Array.from(Array(18)).map((n, y) => (
-                <div key={`temp-${y}`} style={{ display: 'flex' }}>
+                <div key={`temp-${y}`} className="field-row">
                   {Array.from(Array(10)).map((n, x) => (
-                    <div
-                      onClick={() => handleInitialClick({ x, y })}
-                      style={{ width: '40px', height: '40px', backgroundColor: 'gray' }}
-                      key={`${x}-${y}`}
-                    >
-                      N
-                    </div>
+                    <div onClick={() => handleInitialClick({ x, y })} className="field-cell" key={`${x}-${y}`}></div>
                   ))}
                 </div>
               ))
             : field.map((row, i) => (
-                <div key={`test-${i}`} style={{ display: 'flex' }}>
-                  {row.map(({ x, y, hasMine }) => (
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        backgroundColor: 'gray',
-                      }}
-                      key={`${x}-${y}`}
-                      onClick={() => handleClick({ x, y })}
-                    >
-                      {isUncovered(uncoveredCoords, { x, y })
-                        ? hasMine
-                          ? 'M'
-                          : getRenderingByMinesAdjecent({ x, y }, field)
-                        : '?'}
-                      {/* `(${this.mineCountByCoord2DisplayString({ x, y }, this.state.field)})`} */}
-                    </div>
-                  ))}
+                <div key={`test-${i}`} className="field-row">
+                  {row.map(({ x, y, hasMine }) => {
+                    const isUncovered = getCoordIsUncovered(uncoveredCoords, { x, y });
+                    return (
+                      <div
+                        className={`field-cell ${isUncovered ? 'uncovered' : ''}`}
+                        key={`${x}-${y}`}
+                        onClick={() => handleClick({ x, y })}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          handleRightClick({ x, y });
+                        }}
+                      >
+                        {isUncovered && (hasMine ? '💣' : getRenderingByMinesAdjecent({ x, y }, field))}
+                        {!isUncovered && isArrayIncludesCoord(flaggedCoords, { x, y }) && '🚩'}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
         </div>

@@ -13,3 +13,10 @@ export interface Cell {
 }
 
 export type Field = Cell[][];
+
+export interface GeneratedField {
+  field: Field;
+  xSize: number;
+  ySize: number;
+  mineCoords: Coord[];
+}

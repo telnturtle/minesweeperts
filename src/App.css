@@ -24,15 +24,37 @@
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.field-row {
+  display: flex;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.field-cell {
+  width: 3rem;
+  height: 3rem;
+  background-color: #54bf71;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field-cell.uncovered {
+  background-color: #d1cc6f;
+}
+
+.field-row:nth-child(2n + 1) .field-cell:nth-child(2n + 1),
+.field-row:nth-child(2n) .field-cell:nth-child(2n) {
+  background-color: #43ae60;
+}
+
+.field-row:nth-child(2n + 1) .field-cell:nth-child(2n + 1).uncovered,
+.field-row:nth-child(2n) .field-cell:nth-child(2n).uncovered {
+  background-color: #e0bb5e;
+}
+
+.red-indicator {
+  color: #c95151;
+}
+
+.green-indicator {
+  color: #51c953;
 }

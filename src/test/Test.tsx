@@ -4,10 +4,19 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { generateField, RATES } from '../core/mine';
 
 // types
-import { Cell, Coord, Field, GameState } from 'core/types';
+import { Coord, Field, GameState } from 'core/types';
 
 // auxs
 import { isArrayIncludesCoord, around8Coords, around4Coords, arrayIndexOfCoord } from '../core/auxs';
+
+const a = 12345;
+
+const b = (
+  <div
+    className="12345"
+    a
+  />
+);
 
 /** Get rendering string the count of adjecent mines */
 const getRenderingByMinesAdjecent = (coord: Coord, field: Field): string => {
@@ -15,7 +24,7 @@ const getRenderingByMinesAdjecent = (coord: Coord, field: Field): string => {
   return n === 0 ? '' : 9 > n ? String(n) : '*';
 };
 
-/** Get the count of adjecent mines */
+/** Get the co unt of adjecent mines */
 const getMinesAdjacentToCoord = (coord: Coord, field: Field): number => {
   if (hasCellMine(coord, field)) return 9;
 

@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { generateField, RATES } from '../core/mine';
 
 // types
-import { Cell, Coord, Field, GameState } from 'core/types';
+import { Coord, Field, GameState } from 'core/types';
 
 // auxs
 import { isArrayIncludesCoord, around8Coords, around4Coords, arrayIndexOfCoord } from '../core/auxs';
@@ -15,7 +15,7 @@ const getRenderingByMinesAdjecent = (coord: Coord, field: Field): string => {
   return n === 0 ? '' : 9 > n ? String(n) : '*';
 };
 
-/** Get the count of adjecent mines */
+/** Get the co unt of adjecent mines */
 const getMinesAdjacentToCoord = (coord: Coord, field: Field): number => {
   if (hasCellMine(coord, field)) return 9;
 
@@ -117,7 +117,7 @@ export default function Test(): JSX.Element {
         setUncoveredCoords((prev) => [...prev, ...nextParam.acc]);
       }
     },
-    [getMinesAdjacentToCoord, auxWidelyUncoverCells, uncoveredCoords, field],
+    [uncoveredCoords, field],
   );
 
   useEffect(() => {
@@ -135,7 +135,7 @@ export default function Test(): JSX.Element {
   const handleClick = useCallback(
     (coord: Coord): void => {
       if (gameState === 'exploded') {
-        if (!confirm('New game?')) return;
+        if (!window.confirm('New game?')) return;
         initializeGame();
         return;
       }
@@ -148,7 +148,7 @@ export default function Test(): JSX.Element {
 
       uncoverCell(coord);
     },
-    [field, hasCellMine, uncoverCell, gameState],
+    [gameState, field, uncoverCell, initializeGame],
   );
 
   useEffect(() => {
@@ -156,13 +156,16 @@ export default function Test(): JSX.Element {
   }, [gameState]);
 
   /** Generate and start the game */
-  const handleInitialClick = useCallback((coord: Coord): void => {
-    const { field, mineCoords, xSize, ySize } = generateField(10, 18, RATES.normal, coord);
-    setField(field);
-    setMineCoords(mineCoords);
-    uncoverCell(coord, field);
-    setGameState('sweeping');
-  }, []);
+  const handleInitialClick = useCallback(
+    (coord: Coord): void => {
+      const { field, mineCoords, xSize, ySize } = generateField(10, 18, RATES.normal, coord);
+      setField(field);
+      setMineCoords(mineCoords);
+      uncoverCell(coord, field);
+      setGameState('sweeping');
+    },
+    [uncoverCell],
+  );
 
   const handleRightClick = useCallback(
     (coord: Coord): void => {
@@ -173,7 +176,7 @@ export default function Test(): JSX.Element {
         return index ? prev.filter((_, idx) => idx !== index) : [...prev, coord];
       });
     },
-    [field, gameState, setFlaggedCoords],
+    [gameState, setFlaggedCoords],
   );
 
   return (

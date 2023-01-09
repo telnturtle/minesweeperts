@@ -20,7 +20,7 @@ export const getCellFromField = (c: Coord, f: Field): Cell => f[c.y][c.x];
 
 /** Get coordinates around the 8 direction of coordinate */
 export const around8Coords = ({ x, y }: Coord, xSize: number, ySize: number): Coord[] => {
-  let acc: Coord[] = [];
+  const acc: Coord[] = [];
   [x - 1, x, x + 1].forEach((x) => {
     [y - 1, y, y + 1].forEach((y) => {
       acc.push({ x, y });

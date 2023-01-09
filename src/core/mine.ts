@@ -8,7 +8,7 @@ export const RATES = { normal: 0.12, hard: 0.18, expert: 0.24 };
 const generateMineCoords = (x: number, y: number, rate: number, cleanCell: Coord): Coord[] => {
   const noMineCoords = [cleanCell, ...around8Coords(cleanCell, x, y)];
   let mineCount = Math.floor(x * y * rate);
-  let mines: Coord[] = [];
+  const mines: Coord[] = [];
   while (mineCount > 0) {
     const maybeMine = { x: Math.floor(Math.random() * x), y: Math.floor(Math.random() * y) };
     if (!isArrayIncludesCoord(noMineCoords, maybeMine) && !isArrayIncludesCoord(mines, maybeMine)) {
@@ -46,8 +46,8 @@ const putMinesUnderField = (coords: Coord[], field: Field): Field => {
 
 /** Generate minesweeper game field */
 export const generateField = (
-  xSize: number = 10,
-  ySize: number = 18,
+  xSize = 10,
+  ySize = 18,
   rate: number = RATES.normal,
   cleanCell: Coord = { x: 1, y: 1 },
 ): GeneratedField => {
